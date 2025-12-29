@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"os"
@@ -29,7 +30,22 @@ func main() {
 		if err != nil {
 			continue
 		}
-		fmt.Println("New connection from", conn.RemoteAddr())
-		conn.Close()
+		go handleClients(conn)
+		// conn.Write([]byte("Hello"))
+	}
+}
+
+func handleClients(conn net.Conn) {
+	defer conn.Close()
+	reader := bufio.NewReader(conn)
+	for {
+		msg, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Client disconnected:", conn.RemoteAddr())
+			return
+		}
+		
+		fmt.Print("Received:", msg)
+		
 	}
 }
