@@ -5,6 +5,19 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
+	"sync"
+)
+
+type Client struct {
+	c_conn net.Conn
+	c_name string
+}
+
+var (
+	clients []Client
+	mu      sync.Mutex
+	broadcast chan string
 )
 
 func main() {
@@ -30,22 +43,43 @@ func main() {
 		if err != nil {
 			continue
 		}
+
 		go handleClients(conn)
-		// conn.Write([]byte("Hello"))
 	}
 }
 
 func handleClients(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
+	conn.Write([]byte("Welcome To The TCP Chat !!!\n"))
+	conn.Write([]byte("Enter Your Name: "))
 	for {
-		msg, err := reader.ReadString('\n')
+		name, err := reader.ReadString('\n')
+		name = strings.TrimSpace(name)
 		if err != nil {
 			fmt.Println("Client disconnected:", conn.RemoteAddr())
 			return
 		}
-		
-		fmt.Print("Received:", msg)
-		
+		if name == "" {
+			conn.Write([]byte("Name Cannot be empty"))
+			return
+		}
+		conn.Write([]byte("You name " + name))
+
+		// store client infos
+		client := Client{
+			c_conn: conn,
+			c_name: name,
+		}
+
+		mu.Lock()
+		if len(clients) >= 10 {
+			mu.Unlock()
+			conn.Write([]byte("Chat is full\n"))
+			return
+		}
+		clients = append(clients, client)
+		mu.Unlock()
+
 	}
 }
