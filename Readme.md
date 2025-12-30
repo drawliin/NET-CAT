@@ -1,5 +1,4 @@
 #### 1- Sanitize user mssg (Prevent empty messages)
-#### 2- When a client disconnected.. we should remove his conn from clients slice so other users can connect
 #### 3- Validate Name (user can have up to 3 attempts when entering an invalid name)
 #### 4- Writing to connections without error handling
 ```
