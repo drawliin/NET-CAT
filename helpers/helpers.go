@@ -13,6 +13,7 @@ type Server struct {
 	clients   []Client
 	mu        sync.Mutex
 	Broadcast chan string
+	history []string
 }
 
 type Client struct {
@@ -51,6 +52,15 @@ func (s *Server) HandleClients(conn net.Conn) {
 	}
 	s.clients = append(s.clients, client)
 	s.mu.Unlock()
+
+	// load old messages to new clients
+	s.mu.Lock()
+	for _, oldMssg := range s.history {
+		conn.Write([]byte(oldMssg))
+	}
+	s.mu.Unlock()
+	
+
 	userJoinMssg := fmt.Sprintf("%s has joined the group\n", client.c_name)
 	s.Broadcast <- userJoinMssg
 
@@ -69,18 +79,21 @@ func (s *Server) HandleClients(conn net.Conn) {
 		}
 		timestamp := time.Now().Format("2006-01-02 15:04:05")
 		formatted := fmt.Sprintf("[%s][%s]:%s\n", timestamp, client.c_name, msg)
+		s.mu.Lock()
+		s.history = append(s.history, formatted)
+		s.mu.Unlock()
 		s.Broadcast <- formatted
 	}
 }
 
 // BroadCast a Message to all clients
 func (s *Server) BroadcastMessages() {
-	// create copy of clients to not hold the mutex so long
-	s.mu.Lock()
-	clientsCopy := append([]Client{}, s.clients...)
-	s.mu.Unlock()
-
+	
 	for msg := range s.Broadcast {
+		// create copy of clients to not hold the mutex so long
+		s.mu.Lock()
+		clientsCopy := append([]Client(nil), s.clients...)
+		s.mu.Unlock()
 		for _, c := range clientsCopy {
 			c.c_conn.Write([]byte(msg))
 		}
