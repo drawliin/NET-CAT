@@ -13,22 +13,22 @@ type Server struct {
 	clients   []*Client
 	mu        sync.Mutex
 	Broadcast chan string
-	history []string
+	history   []string
 }
 
 type Client struct {
 	c_conn net.Conn
 	c_name string
-	send chan string
+	send   chan string
 }
 
 func (s *Server) HandleClients(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
-	
+
 	conn.Write([]byte("Welcome To The TCP Chat !!!\n"))
 	conn.Write([]byte("Enter Your Name: "))
-	
+
 	name, err := reader.ReadString('\n')
 	if err != nil {
 		fmt.Println("can't establish connection:", conn.RemoteAddr())
@@ -44,10 +44,10 @@ func (s *Server) HandleClients(conn net.Conn) {
 	client := Client{
 		c_conn: conn,
 		c_name: name,
-		send: make(chan string),
+		send:   make(chan string, 16),
 	}
 	s.mu.Lock()
-	
+
 	if len(s.clients) >= 10 {
 		s.mu.Unlock()
 		conn.Write([]byte("Chat is full\n"))
@@ -55,7 +55,7 @@ func (s *Server) HandleClients(conn net.Conn) {
 	}
 	s.clients = append(s.clients, &client)
 	s.mu.Unlock()
-	
+
 	go client.clientWriter()
 
 	// load old messages to new clients
@@ -65,11 +65,9 @@ func (s *Server) HandleClients(conn net.Conn) {
 		// conn.Write([]byte(oldMssg))
 	}
 	s.mu.Unlock()
-	
 
 	userJoinMssg := fmt.Sprintf("%s has joined the group\n", client.c_name)
 	s.Broadcast <- userJoinMssg
-
 
 	for {
 		msg, err := reader.ReadString('\n')
@@ -77,6 +75,7 @@ func (s *Server) HandleClients(conn net.Conn) {
 			s.removeClient(conn)
 			leaveMsg := fmt.Sprintf("%s has left the chat...\n", client.c_name)
 			s.Broadcast <- leaveMsg
+			close(client.send)
 			break
 		}
 		msg = strings.TrimSpace(msg)
@@ -94,14 +93,22 @@ func (s *Server) HandleClients(conn net.Conn) {
 
 // BroadCast a Message to all clients
 func (s *Server) BroadcastMessages() {
-	
 	for msg := range s.Broadcast {
 		// create copy of clients to not hold the mutex so long
 		s.mu.Lock()
 		clientsCopy := append([]*Client(nil), s.clients...)
 		s.mu.Unlock()
+
 		for _, c := range clientsCopy {
-			c.send <- msg
+			select {
+			case c.send <- msg:
+				// Success: Message added to buffer
+			default:
+				// Failure: Buffer is full (16/16).
+				// Client is lagging or dead.
+				fmt.Println("Kicking lagging client:", c.c_name)
+				c.c_conn.Close()
+			}
 		}
 	}
 }
@@ -113,8 +120,8 @@ func (s *Server) removeClient(conn net.Conn) {
 
 	for i, c := range s.clients {
 		if c.c_conn == conn {
-			close(c.send)
 			s.clients = append(s.clients[:i], s.clients[i+1:]...)
+			// close(c.send)
 			return
 		}
 	}
@@ -122,6 +129,10 @@ func (s *Server) removeClient(conn net.Conn) {
 
 func (c *Client) clientWriter() {
 	for msg := range c.send {
-		c.c_conn.Write([]byte(msg))
+		_, err := c.c_conn.Write([]byte(msg))
+		if err != nil {
+			fmt.Printf("Error %v\n", err)
+			return
+		}
 	}
 }
