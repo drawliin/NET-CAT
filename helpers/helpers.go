@@ -28,11 +28,11 @@ func (s *Server) HandleClients(conn net.Conn) {
 	conn.Write([]byte("Enter Your Name: "))
 
 	name, err := reader.ReadString('\n')
-	name = strings.TrimSpace(name)
 	if err != nil {
-		fmt.Println("Client disconnected:", conn.RemoteAddr())
+		fmt.Println("can't establish connection:", conn.RemoteAddr())
 		return
 	}
+	name = strings.TrimSpace(name)
 	if name == "" {
 		conn.Write([]byte("Name Cannot be empty"))
 		return
