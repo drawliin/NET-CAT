@@ -10,7 +10,7 @@ import (
 )
 
 type Server struct {
-	clients   []Client
+	clients   []*Client
 	mu        sync.Mutex
 	Broadcast chan string
 	history []string
@@ -19,15 +19,16 @@ type Server struct {
 type Client struct {
 	c_conn net.Conn
 	c_name string
+	send chan string
 }
 
 func (s *Server) HandleClients(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
-
+	
 	conn.Write([]byte("Welcome To The TCP Chat !!!\n"))
 	conn.Write([]byte("Enter Your Name: "))
-
+	
 	name, err := reader.ReadString('\n')
 	if err != nil {
 		fmt.Println("can't establish connection:", conn.RemoteAddr())
@@ -43,20 +44,25 @@ func (s *Server) HandleClients(conn net.Conn) {
 	client := Client{
 		c_conn: conn,
 		c_name: name,
+		send: make(chan string),
 	}
 	s.mu.Lock()
+	
 	if len(s.clients) >= 10 {
 		s.mu.Unlock()
 		conn.Write([]byte("Chat is full\n"))
 		return
 	}
-	s.clients = append(s.clients, client)
+	s.clients = append(s.clients, &client)
 	s.mu.Unlock()
+	
+	go client.clientWriter()
 
 	// load old messages to new clients
 	s.mu.Lock()
 	for _, oldMssg := range s.history {
-		conn.Write([]byte(oldMssg))
+		client.send <- oldMssg
+		// conn.Write([]byte(oldMssg))
 	}
 	s.mu.Unlock()
 	
@@ -92,10 +98,10 @@ func (s *Server) BroadcastMessages() {
 	for msg := range s.Broadcast {
 		// create copy of clients to not hold the mutex so long
 		s.mu.Lock()
-		clientsCopy := append([]Client(nil), s.clients...)
+		clientsCopy := append([]*Client(nil), s.clients...)
 		s.mu.Unlock()
 		for _, c := range clientsCopy {
-			c.c_conn.Write([]byte(msg))
+			c.send <- msg
 		}
 	}
 }
@@ -107,8 +113,15 @@ func (s *Server) removeClient(conn net.Conn) {
 
 	for i, c := range s.clients {
 		if c.c_conn == conn {
+			close(c.send)
 			s.clients = append(s.clients[:i], s.clients[i+1:]...)
 			return
 		}
+	}
+}
+
+func (c *Client) clientWriter() {
+	for msg := range c.send {
+		c.c_conn.Write([]byte(msg))
 	}
 }
