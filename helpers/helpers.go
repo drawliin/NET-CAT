@@ -73,16 +73,21 @@ func (s *Server) HandleClients(conn net.Conn) {
 	}
 }
 
+// BroadCast a Message to all clients
 func (s *Server) BroadcastMessages() {
+	// create copy of clients to not hold the mutex so long
+	s.mu.Lock()
+	clientsCopy := append([]Client{}, s.clients...)
+	s.mu.Unlock()
+
 	for msg := range s.Broadcast {
-		s.mu.Lock()
-		for _, c := range s.clients {
+		for _, c := range clientsCopy {
 			c.c_conn.Write([]byte(msg))
 		}
-		s.mu.Unlock()
 	}
 }
 
+// Remove a client if disconnected
 func (s *Server) removeClient(conn net.Conn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
