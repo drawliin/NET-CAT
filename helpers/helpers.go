@@ -51,6 +51,9 @@ func (s *Server) HandleClients(conn net.Conn) {
 	}
 	s.clients = append(s.clients, client)
 	s.mu.Unlock()
+	userJoinMssg := fmt.Sprintf("%s has joined the group\n", client.c_name)
+	s.Broadcast <- userJoinMssg
+
 
 	for {
 		msg, err := reader.ReadString('\n')
@@ -75,7 +78,6 @@ func (s *Server) BroadcastMessages() {
 		s.mu.Lock()
 		for _, c := range s.clients {
 			c.c_conn.Write([]byte(msg))
-			fmt.Println(msg)
 		}
 		s.mu.Unlock()
 	}
