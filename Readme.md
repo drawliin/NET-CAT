@@ -1,5 +1,5 @@
 #### 1- Sanitize user mssg (Prevent empty messages)
-#### 2- Validate Name (user can have up to 3 attempts when entering an invalid name)
+#### 2- Validate Name (user can have up to 3 attempts when entering an invalid name) + Unique Names
 #### 3- Writing to connections without error handling
 ```
 we ignore write errors everywhere:
