@@ -33,7 +33,7 @@ func Listen(add string) {
 	//create a mutex for protecting data
 	var mu sync.Mutex
 	//handle connections
-	go BroadCastMessage(connections, &mu, ch)
+	go BroadCastMessage(&connections, &mu, ch)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
