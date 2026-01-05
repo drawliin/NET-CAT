@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net-cat/helpers"
 	"os"
 )
@@ -9,12 +10,19 @@ import (
 func main() {
 	port := "8989"
 	//validate args
-	if len(os.Args) == 2 {
-		port = fmt.Sprintf("%d", os.Args[1])
-	} else if len(os.Args) > 2 {
+	if len(os.Args) > 2 {
 		fmt.Println("[USAGE]: ./TCPChat $port")
 		return
+	} else if len(os.Args) == 2 {
+		port = os.Args[1]
 	}
-	add := "localhost:" + port
-	helpers.Listen(add)
+	server := &helpers.ChatServer{
+		Clients:  make(map[string]net.Conn),
+		Messages: make([]string, 0),
+		MsgChan:  make(chan string),
+		Greeting: helpers.GetGreeting(),
+	}
+	server.Listen(port)
+
+	
 }
