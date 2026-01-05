@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +15,7 @@ type Server struct {
 	mu        sync.Mutex
 	Broadcast chan string
 	history   []string
+	Greeting  []byte
 }
 
 type Client struct {
@@ -26,8 +28,7 @@ func (s *Server) HandleClients(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
 
-	conn.Write([]byte("Welcome To The TCP Chat !!!\n"))
-	conn.Write([]byte("Enter Your Name: "))
+	conn.Write(s.Greeting)
 
 	name, err := reader.ReadString('\n')
 	if err != nil {
@@ -135,4 +136,13 @@ func (c *Client) clientWriter() {
 			return
 		}
 	}
+}
+
+func ReadGreeting() []byte {
+	defaultGreeting := "Welcome to TCP-Chat!\n[ENTER YOUR NAME]:"
+	logoBytes, err := os.ReadFile("greeting.txt")
+	if err != nil {
+		return []byte(defaultGreeting)
+	}
+	return logoBytes
 }

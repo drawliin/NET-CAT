@@ -11,6 +11,7 @@ import (
 func main() {
 	server := &helpers.Server{
 		Broadcast: make(chan string),
+		Greeting:  helpers.ReadGreeting(),
 	}
 	port := "8989"
 	if len(os.Args) == 2 {
