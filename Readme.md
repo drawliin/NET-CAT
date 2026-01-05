@@ -14,3 +14,4 @@ if _, err := c.c_conn.Write([]byte(msg)); err != nil {
 }
 ```
 #### 4- Drop Clients When their buffer is full (it means they are slow enough)
+#### 5- LImit User Name
