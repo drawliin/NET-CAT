@@ -68,18 +68,17 @@ func (s *Server) HandleClients(conn net.Conn) {
 	s.mu.Lock()
 	for _, oldMssg := range s.history {
 		client.send <- oldMssg
-		// conn.Write([]byte(oldMssg))
 	}
 	s.mu.Unlock()
 
-	userJoinMssg := fmt.Sprintf("%s has joined the group\n", client.c_name)
+	userJoinMssg := fmt.Sprintf("%s has joined our chat...\n", client.c_name)
 	s.Broadcast <- userJoinMssg
 
 	for {
 		msg, err := reader.ReadString('\n')
 		if err != nil {
 			s.removeClient(conn)
-			leaveMsg := fmt.Sprintf("%s has left the chat...\n", client.c_name)
+			leaveMsg := fmt.Sprintf("%s has left our chat...\n", client.c_name)
 			s.Broadcast <- leaveMsg
 			close(client.send)
 			break
@@ -111,7 +110,7 @@ func (s *Server) BroadcastMessages() {
 				// Success: Message added to buffer
 			default:
 				// Failure: Buffer is full (16/16).
-				// Client is lagging or dead.
+				// Client is lagging.
 				fmt.Println("Kicking lagging client:", c.c_name)
 				c.c_conn.Close()
 			}
@@ -127,7 +126,6 @@ func (s *Server) removeClient(conn net.Conn) {
 	for i, c := range s.clients {
 		if c.c_conn == conn {
 			s.clients = append(s.clients[:i], s.clients[i+1:]...)
-			// close(c.send)
 			return
 		}
 	}
