@@ -29,7 +29,7 @@ func (s *Server) HandleClients(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 
 	conn.Write(s.Greeting)
-
+	 
 	name, err := reader.ReadString('\n')
 	if err != nil {
 		fmt.Println("can't establish connection:", conn.RemoteAddr())
@@ -37,7 +37,12 @@ func (s *Server) HandleClients(conn net.Conn) {
 	}
 	name = strings.TrimSpace(name)
 	if name == "" {
-		conn.Write([]byte("Name Cannot be empty"))
+		conn.Write([]byte("Name Cannot be empty\n"))
+		return
+	}
+	// check if name already exists
+	if s.isDuplicateName(name) {
+		conn.Write([]byte("Name is already taken\n"))
 		return
 	}
 	conn.Write([]byte("Your name " + name + "\n"))
@@ -136,6 +141,18 @@ func (c *Client) clientWriter() {
 			return
 		}
 	}
+}
+
+// check if name already exists
+func (s *Server) isDuplicateName(name string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, client := range s.clients {
+		if client.c_name == name {
+			return true
+		}
+	}
+	return false
 }
 
 func ReadGreeting() []byte {
