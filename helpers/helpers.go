@@ -28,24 +28,40 @@ func (s *Server) HandleClients(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
 
-	conn.Write(s.Greeting)
-	 
-	name, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Println("can't establish connection:", conn.RemoteAddr())
+	if _, err := conn.Write(s.Greeting); err != nil {
 		return
 	}
-	name = strings.TrimSpace(name)
-	if name == "" {
-		conn.Write([]byte("Name Cannot be empty\n"))
+
+	var name string
+	var err error
+	for {
+		if _, err = conn.Write([]byte("[ENTER YOUR NAME]: ")); err != nil {
+			return
+		}
+		name, err = reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("can't establish connection:", conn.RemoteAddr())
+			return
+		}
+		name = strings.TrimSpace(name)
+		if name == "" {
+			if _, err = conn.Write([]byte("Name Cannot be empty\n")); err != nil {
+				return
+			}
+			continue
+		}
+		if s.isDuplicateName(name) {
+			if _, err = conn.Write([]byte("Name is already taken\n")); err != nil {
+				return
+			}
+			continue
+		}
+		break
+	}
+	if _, err = conn.Write([]byte("Your name " + name + "\n")); err != nil {
 		return
 	}
-	// check if name already exists
-	if s.isDuplicateName(name) {
-		conn.Write([]byte("Name is already taken\n"))
-		return
-	}
-	conn.Write([]byte("Your name " + name + "\n"))
+
 	// store client infos
 	client := Client{
 		c_conn: conn,
@@ -146,7 +162,7 @@ func (s *Server) isDuplicateName(name string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, client := range s.clients {
-		if client.c_name == name {
+		if strings.EqualFold(client.c_name, name){
 			return true
 		}
 	}
