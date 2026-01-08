@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 type Server struct {
@@ -56,10 +57,13 @@ func (s *Server) HandleClients(conn net.Conn) {
 			}
 			continue
 		}
+		if utf8.RuneCountInString(name) > 30 {
+			if _, err = conn.Write([]byte("Name is too long\n")); err != nil {
+				return
+			}
+			continue
+		}
 		break
-	}
-	if _, err = conn.Write([]byte("Your name " + name + "\n")); err != nil {
-		return
 	}
 
 	// store client infos
@@ -162,7 +166,7 @@ func (s *Server) isDuplicateName(name string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, client := range s.clients {
-		if strings.EqualFold(client.c_name, name){
+		if strings.EqualFold(client.c_name, name) {
 			return true
 		}
 	}
