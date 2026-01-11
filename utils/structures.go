@@ -10,5 +10,5 @@ type Server struct {
 	Messages []string
 	Greeting string
 	Mu       sync.Mutex
-	Chan     chan string
+	Channel     chan string
 }

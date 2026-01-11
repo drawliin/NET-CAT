@@ -2,8 +2,11 @@ package utils
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"net"
+	"strings"
+	"time"
 )
 
 func (s *Server) handleConnection(connection net.Conn) {
@@ -26,7 +29,7 @@ func (s *Server) handleConnection(connection net.Conn) {
 	//read the given name until it's valid
 	askNameMessage := "[ENTER YOUR NAME]: "
 	reader := bufio.NewReader(connection)
-
+	name := ""
 	for {
 		_, err := connection.Write([]byte(askNameMessage))
 
@@ -35,12 +38,15 @@ func (s *Server) handleConnection(connection net.Conn) {
 			return
 		}
 
-		name, err := reader.ReadString('\n')
+		name, err = reader.ReadString('\n')
 
 		if err != nil {
 			log.Printf("failed to register client...\n%s\n", err)
 			return
 		}
+
+		//trim whitespace
+		name = strings.TrimSpace(name)
 
 		//validate name
 		err = s.validateAndRegister(name, connection)
@@ -56,8 +62,22 @@ func (s *Server) handleConnection(connection net.Conn) {
 
 			continue
 		}
-		log.Println("client registered:", name)
 		break
+	}
+
+	//listen for messages on the connection
+	for {
+		message, err := reader.ReadString('\n')
+
+		if err != nil {
+			s.disconnect(connection)
+			return
+		}
+
+		//broadcast message
+		time := time.Now().Format("2006-01-02 15:04:05")
+		formattedMessage := fmt.Sprintf("[%s][%s]:%s", time, name, message)
+		s.Channel <- formattedMessage
 	}
 
 }

@@ -12,7 +12,8 @@ func (s *Server) Listen(port string) {
 		log.Fatalf("error listening on port %s...\n%s", port, err)
 	}
 	log.Println("listening on port", port)
-
+	//broadcast messages
+	go s.BroadcastMessage()
 	//accept connections
 	for {
 		connection, err := listener.Accept()
