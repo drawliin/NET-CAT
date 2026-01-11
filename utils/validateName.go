@@ -1,0 +1,32 @@
+package utils
+
+import (
+	"errors"
+	"net"
+	"strings"
+)
+
+func (s *Server) validateAndRegister(name string, connection net.Conn) error {
+	//trim whitespace
+	name = strings.TrimSpace(name)
+
+	//check if name is empty
+	if name == "" {
+		return errors.New("name cannot be empty\n")
+	}
+
+	//check if name already exists
+	s.Mu.Lock()
+
+	_, exists := s.Clients[name]
+
+	if !exists {
+		s.Clients[name] = connection
+		s.Mu.Unlock()
+		return nil
+	}
+
+	s.Mu.Unlock()
+
+	return errors.New("name already exists\n")
+}
