@@ -17,11 +17,17 @@ func (s *Server) validateAndRegister(name string, connection net.Conn) error {
 
 	//check if name already exists
 	s.Mu.Lock()
+	nameExists := false
 
-	_, exists := s.Clients[name]
+	for _, existingName := range s.Clients {
+		if existingName == name {
+			nameExists = true
+			break
+		}
+	}
 
-	if !exists {
-		s.Clients[name] = connection
+	if !nameExists {
+		s.Clients[connection] = name
 		s.Mu.Unlock()
 		return nil
 	}

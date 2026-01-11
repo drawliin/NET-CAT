@@ -6,7 +6,7 @@ import (
 )
 
 type Server struct {
-	Clients  map[string]net.Conn
+	Clients  map[net.Conn]string
 	Messages []string
 	Greeting string
 	Mu       sync.Mutex
