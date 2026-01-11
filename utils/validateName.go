@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"strings"
 )
@@ -12,7 +13,7 @@ func (s *Server) validateAndRegister(name string, connection net.Conn) error {
 
 	//check if name is empty
 	if name == "" {
-		return errors.New("name cannot be empty\n")
+		return errors.New("Name cannot be empty\n")
 	}
 
 	//check if name already exists
@@ -28,5 +29,5 @@ func (s *Server) validateAndRegister(name string, connection net.Conn) error {
 
 	s.Mu.Unlock()
 
-	return errors.New("name already exists\n")
+	return errors.New("Name already exists\n")
 }
