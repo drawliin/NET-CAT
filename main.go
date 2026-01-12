@@ -23,7 +23,7 @@ func main() {
 
 	//create an instance of server
 	server := utils.Server{
-		Channel:  make(chan string),
+		Channel:  make(chan utils.Message),
 		Clients:  make(map[net.Conn]string),
 		Greeting: utils.Greeting(),
 	}

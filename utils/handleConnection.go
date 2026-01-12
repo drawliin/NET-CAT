@@ -75,9 +75,16 @@ func (s *Server) handleConnection(connection net.Conn) {
 		}
 
 		//broadcast message
+		s.Mu.Lock()
 		time := time.Now().Format("2006-01-02 15:04:05")
 		formattedMessage := fmt.Sprintf("[%s][%s]:%s", time, name, message)
-		s.Channel <- formattedMessage
+		s.Messages = append(s.Messages, formattedMessage)
+		s.Mu.Unlock()
+		broadcastMessage := Message{
+			message:    formattedMessage,
+			connection: connection,
+		}
+		s.Channel <- broadcastMessage
 	}
 
 }
