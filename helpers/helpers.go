@@ -92,7 +92,18 @@ func (s *Server) HandleClients(conn net.Conn) {
 	s.mu.Unlock()
 
 	userJoinMssg := fmt.Sprintf("%s has joined our chat...\n", client.c_name)
-	s.Broadcast <- userJoinMssg
+	
+	s.mu.Lock()
+	for _, c := range s.clients {
+		if c != &client {
+			select {
+			case c.send <- userJoinMssg:
+			default:
+				c.c_conn.Close()
+			}
+		}
+	}
+	s.mu.Unlock()
 
 	for {
 		msg, err := reader.ReadString('\n')
