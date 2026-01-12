@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"net"
 	"net-cat/utils"
 	"os"
@@ -10,7 +10,7 @@ import (
 func main() {
 	//check if number of arguments is higher than one
 	if len(os.Args) > 2 {
-		log.Println("[USAGE]: ./TCPChat $port")
+		fmt.Println("[USAGE]: ./TCPChat $port")
 		return
 	}
 
@@ -23,7 +23,7 @@ func main() {
 
 	//create an instance of server
 	server := utils.Server{
-		Channel:     make(chan string),
+		Channel:  make(chan string),
 		Clients:  make(map[net.Conn]string),
 		Greeting: utils.Greeting(),
 	}

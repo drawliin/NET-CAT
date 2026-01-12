@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"log"
 	"net"
 )
@@ -11,7 +12,7 @@ func (s *Server) Listen(port string) {
 	if err != nil {
 		log.Fatalf("error listening on port %s...\n%s", port, err)
 	}
-	log.Println("listening on port", port)
+	fmt.Printf("Listening on the port :%s\n", port)
 	//broadcast messages
 	go s.BroadcastMessage()
 	//accept connections

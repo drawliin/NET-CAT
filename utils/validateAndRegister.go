@@ -24,7 +24,9 @@ func (s *Server) validateAndRegister(name string, connection net.Conn) error {
 
 	if !nameExists {
 		s.Clients[connection] = name
+		joinMessage := s.Clients[connection] + " has joined our chat...\n"
 		s.Mu.Unlock()
+		s.Channel <- joinMessage
 		return nil
 	}
 
