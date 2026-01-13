@@ -18,6 +18,11 @@ func main() {
 
 	//collect port from arguments if it exists
 	if len(os.Args) == 2 {
+		//validate port
+		if os.Args[1] == "0" {
+			fmt.Println("[USAGE]: ./TCPChat $port")
+			return
+		}
 		port = os.Args[1]
 	}
 
