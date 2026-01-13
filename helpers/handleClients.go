@@ -4,26 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"os"
 	"strings"
-	"sync"
 	"time"
 	"unicode/utf8"
 )
-
-type Server struct {
-	clients   []*Client
-	mu        sync.Mutex
-	Broadcast chan string
-	history   []string
-	Greeting  []byte
-}
-
-type Client struct {
-	c_conn net.Conn
-	c_name string
-	send   chan string
-}
 
 func (s *Server) HandleClients(conn net.Conn) {
 	defer conn.Close()
@@ -92,7 +76,7 @@ func (s *Server) HandleClients(conn net.Conn) {
 	s.mu.Unlock()
 
 	userJoinMssg := fmt.Sprintf("%s has joined our chat...\n", client.c_name)
-	
+
 	s.mu.Lock()
 	for _, c := range s.clients {
 		if c != &client {
@@ -125,70 +109,4 @@ func (s *Server) HandleClients(conn net.Conn) {
 		s.mu.Unlock()
 		s.Broadcast <- formatted
 	}
-}
-
-// BroadCast a Message to all clients
-func (s *Server) BroadcastMessages() {
-	for msg := range s.Broadcast {
-		// create copy of clients to not hold the mutex so long
-		s.mu.Lock()
-		clientsCopy := append([]*Client(nil), s.clients...)
-		s.mu.Unlock()
-
-		for _, c := range clientsCopy {
-			select {
-			case c.send <- msg:
-				// Success: Message added to buffer
-			default:
-				// Failure: Buffer is full (16/16).
-				// Client is lagging.
-				fmt.Println("Kicking lagging client:", c.c_name)
-				c.c_conn.Close()
-			}
-		}
-	}
-}
-
-// Remove a client if disconnected
-func (s *Server) removeClient(conn net.Conn) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for i, c := range s.clients {
-		if c.c_conn == conn {
-			s.clients = append(s.clients[:i], s.clients[i+1:]...)
-			return
-		}
-	}
-}
-
-func (c *Client) clientWriter() {
-	for msg := range c.send {
-		_, err := c.c_conn.Write([]byte(msg))
-		if err != nil {
-			fmt.Printf("Error %v\n", err)
-			return
-		}
-	}
-}
-
-// check if name already exists
-func (s *Server) isDuplicateName(name string) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for _, client := range s.clients {
-		if strings.EqualFold(client.c_name, name) {
-			return true
-		}
-	}
-	return false
-}
-
-func ReadGreeting() []byte {
-	defaultGreeting := "Welcome to TCP-Chat!\n[ENTER YOUR NAME]:"
-	logoBytes, err := os.ReadFile("greeting.txt")
-	if err != nil {
-		return []byte(defaultGreeting)
-	}
-	return logoBytes
 }
