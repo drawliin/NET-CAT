@@ -10,7 +10,7 @@ import (
 
 func main() {
 	server := &helpers.Server{
-		Broadcast: make(chan string),
+		Broadcast: make(chan helpers.Message),
 		Greeting:  helpers.ReadGreeting(),
 	}
 	port := "8989"

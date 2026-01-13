@@ -9,12 +9,18 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
+
 )
+
+type Message struct {
+	client  *Client
+	message string
+}
 
 type Server struct {
 	clients   []*Client
 	mu        sync.Mutex
-	Broadcast chan string
+	Broadcast chan Message
 	history   []string
 	Greeting  []byte
 }
@@ -22,7 +28,10 @@ type Server struct {
 type Client struct {
 	c_conn net.Conn
 	c_name string
-	send   chan string
+	send   chan struct{
+		message string
+		history bool
+	}
 }
 
 func (s *Server) HandleClients(conn net.Conn) {
@@ -67,10 +76,13 @@ func (s *Server) HandleClients(conn net.Conn) {
 	}
 
 	// store client infos
-	client := Client{
+	client := &Client{
 		c_conn: conn,
 		c_name: name,
-		send:   make(chan string, 16),
+		send:   make(chan struct{
+			message string
+			history bool
+		}, 16),
 	}
 	s.mu.Lock()
 
@@ -79,7 +91,7 @@ func (s *Server) HandleClients(conn net.Conn) {
 		conn.Write([]byte("Chat is full\n"))
 		return
 	}
-	s.clients = append(s.clients, &client)
+	s.clients = append(s.clients, client)
 	s.mu.Unlock()
 
 	go client.clientWriter()
@@ -87,30 +99,35 @@ func (s *Server) HandleClients(conn net.Conn) {
 	// load old messages to new clients
 	s.mu.Lock()
 	for _, oldMssg := range s.history {
-		client.send <- oldMssg
+		client.send <- struct{message string; history bool}{message: oldMssg, history: true}
 	}
 	s.mu.Unlock()
 
 	userJoinMssg := fmt.Sprintf("%s has joined our chat...\n", client.c_name)
-	
-	s.mu.Lock()
-	for _, c := range s.clients {
-		if c != &client {
-			select {
-			case c.send <- userJoinMssg:
-			default:
-				c.c_conn.Close()
-			}
-		}
-	}
-	s.mu.Unlock()
+	s.Broadcast <- Message{client: client, message: userJoinMssg}
+	// s.mu.Lock()
+	// for _, c := range s.clients {
+	// 	if c != &client {
+	// 		select {
+	// 		case c.send <- userJoinMssg:
+	// 		default:
+	// 			c.c_conn.Close()
+	// 		}
+	// 	}
+	// }
+	// s.mu.Unlock()
 
 	for {
+		promptTime := time.Now().Format("2006-01-02 15:04:05")
+		prompt := fmt.Sprintf("[%s][%s]:", promptTime, client.c_name)
+		if _, err = conn.Write([]byte(prompt)); err != nil {
+			return
+		}
 		msg, err := reader.ReadString('\n')
 		if err != nil {
 			s.removeClient(conn)
 			leaveMsg := fmt.Sprintf("%s has left our chat...\n", client.c_name)
-			s.Broadcast <- leaveMsg
+			s.Broadcast <- Message{client: client, message: leaveMsg}
 			close(client.send)
 			break
 		}
@@ -119,11 +136,11 @@ func (s *Server) HandleClients(conn net.Conn) {
 			continue
 		}
 		timestamp := time.Now().Format("2006-01-02 15:04:05")
-		formatted := fmt.Sprintf("[%s][%s]:%s\n", timestamp, client.c_name, msg)
+		formatted := fmt.Sprintf("\n[%s][%s]:%s\n", timestamp, client.c_name, msg)
 		s.mu.Lock()
 		s.history = append(s.history, formatted)
 		s.mu.Unlock()
-		s.Broadcast <- formatted
+		s.Broadcast <- Message{client: client, message: formatted}
 	}
 }
 
@@ -136,8 +153,11 @@ func (s *Server) BroadcastMessages() {
 		s.mu.Unlock()
 
 		for _, c := range clientsCopy {
+			if c == msg.client {
+				continue
+			}
 			select {
-			case c.send <- msg:
+			case c.send <- struct{message string; history bool}{message: msg.message, history: false}:
 				// Success: Message added to buffer
 			default:
 				// Failure: Buffer is full (16/16).
@@ -164,7 +184,12 @@ func (s *Server) removeClient(conn net.Conn) {
 
 func (c *Client) clientWriter() {
 	for msg := range c.send {
-		_, err := c.c_conn.Write([]byte(msg))
+		var prompt string
+		if !msg.history {
+			promptTime := time.Now().Format("2006-01-02 15:04:05")
+			prompt = fmt.Sprintf("[%s][%s]:", promptTime, c.c_name)
+		}
+		_, err := c.c_conn.Write([]byte("\n" + msg.message + prompt))
 		if err != nil {
 			fmt.Printf("Error %v\n", err)
 			return
