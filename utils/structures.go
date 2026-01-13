@@ -14,7 +14,6 @@ type Server struct {
 }
 
 type Message struct {
-	chatState bool
 	message    string
 	connection net.Conn
 }

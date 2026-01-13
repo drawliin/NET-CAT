@@ -17,11 +17,8 @@ func (s *Server) BroadcastMessage() {
 				continue
 			}
 			connection.Write([]byte("\n" + message.message))
-			//if chat state is join or leave
-			if message.chatState {
-				prompt := fmt.Sprintf("[%s][%s]: ", time, s.Clients[connection])
-				connection.Write([]byte("\n" + prompt))
-			}
+			prompt := fmt.Sprintf("[%s][%s]: ", time, s.Clients[connection])
+			connection.Write([]byte("\n" + prompt))
 		}
 		s.Mu.Unlock()
 	}

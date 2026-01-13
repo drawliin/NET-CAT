@@ -13,7 +13,6 @@ func (s *Server) disconnect(connection net.Conn) {
 	log.Println("client disconnected")
 	s.Mu.Unlock()
 	broadcastMessage := Message{
-		chatState:  true,
 		message:    leaveMessage,
 		connection: connection,
 	}

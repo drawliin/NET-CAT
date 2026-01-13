@@ -17,7 +17,7 @@ func (s *Server) handleConnection(connection net.Conn) {
 	if len(s.Clients) >= 10 {
 		s.Mu.Unlock()
 		log.Println("chat is full...")
-		connection.Write([]byte("Chat is full, please try again later...\n"))
+		connection.Write([]byte("Chat is full, please try again later..."))
 		return
 	}
 	s.Mu.Unlock()
@@ -77,7 +77,14 @@ func (s *Server) handleConnection(connection net.Conn) {
 		//broadcast message
 		s.Mu.Lock()
 		time := time.Now().Format("2006-01-02 15:04:05")
-		formattedMessage := fmt.Sprintf("[%s][%s]:%s", time, name, message)
+		trimmedMessage := strings.TrimSpace(message)
+		formattedMessage := fmt.Sprintf("[%s][%s]:%s", time, name, trimmedMessage)
+		//check if message is empty
+		if trimmedMessage == "" {
+			connection.Write([]byte(formattedMessage))
+			s.Mu.Unlock()
+			continue
+		}
 		s.Messages = append(s.Messages, formattedMessage)
 		s.Mu.Unlock()
 		broadcastMessage := Message{

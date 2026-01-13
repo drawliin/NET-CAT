@@ -27,7 +27,6 @@ func (s *Server) validateAndRegister(name string, connection net.Conn) error {
 		joinMessage := s.Clients[connection] + " has joined our chat..."
 		s.Mu.Unlock()
 		broadcastMessage := Message{
-			chatState: true,
 			message:    joinMessage,
 			connection: connection,
 		}
