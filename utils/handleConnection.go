@@ -79,8 +79,8 @@ func (s *Server) handleConnection(connection net.Conn) {
 		time := time.Now().Format("2006-01-02 15:04:05")
 		trimmedMessage := strings.TrimSpace(message)
 		formattedMessage := fmt.Sprintf("[%s][%s]:%s", time, name, trimmedMessage)
-		//check if message is empty
-		if trimmedMessage == "" {
+		//check if message is empty or has unprintables
+		if trimmedMessage == "" || !isPrintable(trimmedMessage) {
 			connection.Write([]byte(formattedMessage))
 			s.Mu.Unlock()
 			continue
