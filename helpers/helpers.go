@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
-
 )
 
 type Message struct {
@@ -28,9 +27,10 @@ type Server struct {
 type Client struct {
 	c_conn net.Conn
 	c_name string
-	send   chan struct{
+	send   chan struct {
 		message string
 		history bool
+		showPrompt bool
 	}
 }
 
@@ -79,9 +79,10 @@ func (s *Server) HandleClients(conn net.Conn) {
 	client := &Client{
 		c_conn: conn,
 		c_name: name,
-		send:   make(chan struct{
+		send: make(chan struct {
 			message string
 			history bool
+			showPrompt bool
 		}, 16),
 	}
 	s.mu.Lock()
@@ -99,11 +100,15 @@ func (s *Server) HandleClients(conn net.Conn) {
 	// load old messages to new clients
 	s.mu.Lock()
 	for _, oldMssg := range s.history {
-		client.send <- struct{message string; history bool}{message: oldMssg, history: true}
+		client.send <- struct {
+			message string
+			history bool
+			showPrompt bool
+		}{message: oldMssg, history: true}
 	}
 	s.mu.Unlock()
 
-	userJoinMssg := fmt.Sprintf("%s has joined our chat...\n", client.c_name)
+	userJoinMssg := fmt.Sprintf("\n%s has joined our chat...\n", client.c_name)
 	s.Broadcast <- Message{client: client, message: userJoinMssg}
 	// s.mu.Lock()
 	// for _, c := range s.clients {
@@ -120,9 +125,13 @@ func (s *Server) HandleClients(conn net.Conn) {
 	for {
 		promptTime := time.Now().Format("2006-01-02 15:04:05")
 		prompt := fmt.Sprintf("[%s][%s]:", promptTime, client.c_name)
-		if _, err = conn.Write([]byte(prompt)); err != nil {
-			return
-		}
+		
+		client.send <- struct {
+			message string
+			history bool
+			showPrompt bool
+		}{message: prompt, showPrompt: false}
+
 		msg, err := reader.ReadString('\n')
 		if err != nil {
 			s.removeClient(conn)
@@ -157,7 +166,11 @@ func (s *Server) BroadcastMessages() {
 				continue
 			}
 			select {
-			case c.send <- struct{message string; history bool}{message: msg.message, history: false}:
+			case c.send <- struct {
+				message string
+				history bool
+				showPrompt bool
+			}{message: msg.message, showPrompt: true}:
 				// Success: Message added to buffer
 			default:
 				// Failure: Buffer is full (16/16).
@@ -185,11 +198,11 @@ func (s *Server) removeClient(conn net.Conn) {
 func (c *Client) clientWriter() {
 	for msg := range c.send {
 		var prompt string
-		if !msg.history {
+		if !msg.history && msg.showPrompt{
 			promptTime := time.Now().Format("2006-01-02 15:04:05")
 			prompt = fmt.Sprintf("[%s][%s]:", promptTime, c.c_name)
 		}
-		_, err := c.c_conn.Write([]byte("\n" + msg.message + prompt))
+		_, err := c.c_conn.Write([]byte(msg.message + prompt))
 		if err != nil {
 			fmt.Printf("Error %v\n", err)
 			return
