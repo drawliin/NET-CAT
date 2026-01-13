@@ -85,8 +85,8 @@ func (s *Server) HandleClients(conn net.Conn) {
 			showPrompt bool
 		}, 16),
 	}
+	
 	s.mu.Lock()
-
 	if len(s.clients) >= 10 {
 		s.mu.Unlock()
 		conn.Write([]byte("Chat is full\n"))
@@ -108,7 +108,7 @@ func (s *Server) HandleClients(conn net.Conn) {
 	}
 	s.mu.Unlock()
 
-	userJoinMssg := fmt.Sprintf("\n%s has joined our chat...\n", client.c_name)
+	userJoinMssg := fmt.Sprintf("%s has joined our chat...\n", client.c_name)
 	s.Broadcast <- Message{client: client, message: userJoinMssg}
 	// s.mu.Lock()
 	// for _, c := range s.clients {
@@ -145,7 +145,7 @@ func (s *Server) HandleClients(conn net.Conn) {
 			continue
 		}
 		timestamp := time.Now().Format("2006-01-02 15:04:05")
-		formatted := fmt.Sprintf("\n[%s][%s]:%s\n", timestamp, client.c_name, msg)
+		formatted := fmt.Sprintf("[%s][%s]:%s\n", timestamp, client.c_name, msg)
 		s.mu.Lock()
 		s.history = append(s.history, formatted)
 		s.mu.Unlock()
@@ -198,11 +198,13 @@ func (s *Server) removeClient(conn net.Conn) {
 func (c *Client) clientWriter() {
 	for msg := range c.send {
 		var prompt string
+		var newLine string
 		if !msg.history && msg.showPrompt{
 			promptTime := time.Now().Format("2006-01-02 15:04:05")
 			prompt = fmt.Sprintf("[%s][%s]:", promptTime, c.c_name)
+			newLine = "\n"
 		}
-		_, err := c.c_conn.Write([]byte(msg.message + prompt))
+		_, err := c.c_conn.Write([]byte(newLine + msg.message + prompt))
 		if err != nil {
 			fmt.Printf("Error %v\n", err)
 			return
@@ -223,7 +225,7 @@ func (s *Server) isDuplicateName(name string) bool {
 }
 
 func ReadGreeting() []byte {
-	defaultGreeting := "Welcome to TCP-Chat!\n[ENTER YOUR NAME]:"
+	defaultGreeting := "Welcome to TCP-Chat!\n"
 	logoBytes, err := os.ReadFile("greeting.txt")
 	if err != nil {
 		return []byte(defaultGreeting)
