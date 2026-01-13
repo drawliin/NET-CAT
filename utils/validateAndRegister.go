@@ -10,9 +10,15 @@ func (s *Server) validateAndRegister(name string, connection net.Conn) error {
 	if name == "" {
 		return errors.New("Name cannot be empty\n")
 	}
-	//check if name contains unprintables
-	if !isPrintable(name) {
-		return errors.New("Name cannot have unprintables\n")
+
+	//check if name is too long
+	if len(name) >= 15 {
+		return errors.New("Name should not exceed 15 characters\n")
+	}
+
+	//check if name is valid
+	if !isValidName(name) {
+		return errors.New("Name must only have alphanumerical characters, dash and underscore\n")
 	}
 
 	//check if name already exists
@@ -29,12 +35,15 @@ func (s *Server) validateAndRegister(name string, connection net.Conn) error {
 	if !nameExists {
 		s.Clients[connection] = name
 		joinMessage := s.Clients[connection] + " has joined our chat..."
+
 		//send history
 		for _, historyMessage := range s.Messages {
 			connection.Write([]byte(historyMessage + "\n"))
 		}
+		//register messagee
 		s.Messages = append(s.Messages, joinMessage)
 		s.Mu.Unlock()
+		//send to broadcast
 		broadcastMessage := Message{
 			message:    joinMessage,
 			connection: connection,
