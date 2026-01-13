@@ -40,8 +40,7 @@ func (s *Server) validateAndRegister(name string, connection net.Conn) error {
 		for _, historyMessage := range s.Messages {
 			connection.Write([]byte(historyMessage + "\n"))
 		}
-		//register messagee
-		s.Messages = append(s.Messages, joinMessage)
+
 		s.Mu.Unlock()
 		//send to broadcast
 		broadcastMessage := Message{
