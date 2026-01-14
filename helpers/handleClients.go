@@ -35,6 +35,12 @@ func (s *Server) HandleClients(conn net.Conn) {
 			}
 			continue
 		}
+		if !isValidName(name) {
+			if _, err = conn.Write([]byte("Name Cannot be empty\n")); err != nil {
+				return
+			}
+			continue
+		}
 		if s.isDuplicateName(name) {
 			if _, err = conn.Write([]byte("Name is already taken\n")); err != nil {
 				return
@@ -85,17 +91,6 @@ func (s *Server) HandleClients(conn net.Conn) {
 
 	userJoinMssg := fmt.Sprintf("%s has joined our chat...\n", client.c_name)
 	s.Broadcast <- Message{client: client, message: userJoinMssg}
-	// s.mu.Lock()
-	// for _, c := range s.clients {
-	// 	if c != &client {
-	// 		select {
-	// 		case c.send <- userJoinMssg:
-	// 		default:
-	// 			c.c_conn.Close()
-	// 		}
-	// 	}
-	// }
-	// s.mu.Unlock()
 
 	for {
 		promptTime := time.Now().Format("2006-01-02 15:04:05")
@@ -116,7 +111,7 @@ func (s *Server) HandleClients(conn net.Conn) {
 			break
 		}
 		msg = strings.TrimSpace(msg)
-		if msg == "" {
+		if msg == "" || !isPrintable(msg) {
 			continue
 		}
 		timestamp := time.Now().Format("2006-01-02 15:04:05")
