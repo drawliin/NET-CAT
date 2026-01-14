@@ -111,7 +111,7 @@ func (s *Server) HandleClients(conn net.Conn) {
 			break
 		}
 		msg = strings.TrimSpace(msg)
-		if msg == "" {
+		if msg == "" || !isPrintable(msg) {
 			continue
 		}
 		timestamp := time.Now().Format("2006-01-02 15:04:05")
