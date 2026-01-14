@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strconv"
 
 	"net-cat/helpers"
 )
@@ -17,8 +16,7 @@ func main() {
 	port := "8989"
 	if len(os.Args) == 2 {
 		port = os.Args[1]
-		portInt, err := strconv.Atoi(port)
-		if err != nil || portInt <= 0 {
+		if port == "0" {
 			fmt.Println("Invalid Port")
 			return
 		}

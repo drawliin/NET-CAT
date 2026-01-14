@@ -6,7 +6,6 @@ import (
 	"net"
 	"strings"
 	"time"
-	"unicode/utf8"
 )
 
 func (s *Server) HandleClients(conn net.Conn) {
@@ -47,7 +46,7 @@ func (s *Server) HandleClients(conn net.Conn) {
 			}
 			continue
 		}
-		if utf8.RuneCountInString(name) > 30 {
+		if len([]rune(name)) > 15 {
 			if _, err = conn.Write([]byte("Name is too long\n")); err != nil {
 				return
 			}
