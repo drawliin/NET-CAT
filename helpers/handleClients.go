@@ -4,35 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"os"
 	"strings"
-	"sync"
 	"time"
 	"unicode/utf8"
 )
-
-type Message struct {
-	client  *Client
-	message string
-}
-
-type Server struct {
-	clients   []*Client
-	mu        sync.Mutex
-	Broadcast chan Message
-	history   []string
-	Greeting  []byte
-}
-
-type Client struct {
-	c_conn net.Conn
-	c_name string
-	send   chan struct {
-		message string
-		history bool
-		showPrompt bool
-	}
-}
 
 func (s *Server) HandleClients(conn net.Conn) {
 	defer conn.Close()
@@ -80,12 +55,12 @@ func (s *Server) HandleClients(conn net.Conn) {
 		c_conn: conn,
 		c_name: name,
 		send: make(chan struct {
-			message string
-			history bool
+			message    string
+			history    bool
 			showPrompt bool
 		}, 16),
 	}
-	
+
 	s.mu.Lock()
 	if len(s.clients) >= 10 {
 		s.mu.Unlock()
@@ -101,8 +76,8 @@ func (s *Server) HandleClients(conn net.Conn) {
 	s.mu.Lock()
 	for _, oldMssg := range s.history {
 		client.send <- struct {
-			message string
-			history bool
+			message    string
+			history    bool
 			showPrompt bool
 		}{message: oldMssg, history: true}
 	}
@@ -125,10 +100,10 @@ func (s *Server) HandleClients(conn net.Conn) {
 	for {
 		promptTime := time.Now().Format("2006-01-02 15:04:05")
 		prompt := fmt.Sprintf("[%s][%s]:", promptTime, client.c_name)
-		
+
 		client.send <- struct {
-			message string
-			history bool
+			message    string
+			history    bool
 			showPrompt bool
 		}{message: prompt, showPrompt: false}
 
@@ -151,84 +126,4 @@ func (s *Server) HandleClients(conn net.Conn) {
 		s.mu.Unlock()
 		s.Broadcast <- Message{client: client, message: formatted}
 	}
-}
-
-// BroadCast a Message to all clients
-func (s *Server) BroadcastMessages() {
-	for msg := range s.Broadcast {
-		// create copy of clients to not hold the mutex so long
-		s.mu.Lock()
-		clientsCopy := append([]*Client(nil), s.clients...)
-		s.mu.Unlock()
-
-		for _, c := range clientsCopy {
-			if c == msg.client {
-				continue
-			}
-			select {
-			case c.send <- struct {
-				message string
-				history bool
-				showPrompt bool
-			}{message: msg.message, showPrompt: true}:
-				// Success: Message added to buffer
-			default:
-				// Failure: Buffer is full (16/16).
-				// Client is lagging.
-				fmt.Println("Kicking lagging client:", c.c_name)
-				c.c_conn.Close()
-			}
-		}
-	}
-}
-
-// Remove a client if disconnected
-func (s *Server) removeClient(conn net.Conn) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for i, c := range s.clients {
-		if c.c_conn == conn {
-			s.clients = append(s.clients[:i], s.clients[i+1:]...)
-			return
-		}
-	}
-}
-
-func (c *Client) clientWriter() {
-	for msg := range c.send {
-		var prompt string
-		var newLine string
-		if !msg.history && msg.showPrompt{
-			promptTime := time.Now().Format("2006-01-02 15:04:05")
-			prompt = fmt.Sprintf("[%s][%s]:", promptTime, c.c_name)
-			newLine = "\n"
-		}
-		_, err := c.c_conn.Write([]byte(newLine + msg.message + prompt))
-		if err != nil {
-			fmt.Printf("Error %v\n", err)
-			return
-		}
-	}
-}
-
-// check if name already exists
-func (s *Server) isDuplicateName(name string) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for _, client := range s.clients {
-		if strings.EqualFold(client.c_name, name) {
-			return true
-		}
-	}
-	return false
-}
-
-func ReadGreeting() []byte {
-	defaultGreeting := "Welcome to TCP-Chat!\n"
-	logoBytes, err := os.ReadFile("greeting.txt")
-	if err != nil {
-		return []byte(defaultGreeting)
-	}
-	return logoBytes
 }
