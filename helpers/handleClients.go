@@ -35,6 +35,18 @@ func (s *Server) HandleClients(conn net.Conn) {
 			}
 			continue
 		}
+		if len(name) > 15 {
+			if _, err = conn.Write([]byte("Name should not exceed 15 characters\n")); err != nil {
+				return
+			}
+			continue
+		}
+		if !isValidName(name) {
+			if _, err = conn.Write([]byte("Name must only have alphanumerical characters, dash and underscore\n")); err != nil {
+				return
+			}
+			continue
+		}
 		if s.isDuplicateName(name) {
 			if _, err = conn.Write([]byte("Name is already taken\n")); err != nil {
 				return
