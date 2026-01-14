@@ -35,7 +35,7 @@ func (s *Server) HandleClients(conn net.Conn) {
 			continue
 		}
 		if !isValidName(name) {
-			if _, err = conn.Write([]byte("Name Cannot be empty\n")); err != nil {
+			if _, err = conn.Write([]byte("Name must only have alphanumerical characters, dash and underscore\n")); err != nil {
 				return
 			}
 			continue

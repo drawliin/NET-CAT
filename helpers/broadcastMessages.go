@@ -20,10 +20,7 @@ func (s *Server) BroadcastMessages() {
 				history    bool
 				showPrompt bool
 			}{message: msg.message, showPrompt: true}:
-				// Success: Message added to buffer
 			default:
-				// Failure: Buffer is full (16/16).
-				// Client is lagging.
 				fmt.Println("Kicking lagging client:", c.c_name)
 				c.c_conn.Close()
 			}
