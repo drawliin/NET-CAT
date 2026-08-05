@@ -13,7 +13,7 @@ The project showcases essential Go concepts including:
 - Channel-based communication
 
 ### Features
-
+ 
 - **🔌 TCP Socket Server**: Pure Go TCP listener with configurable port (default: `8989`)
 - **👥 Multi-client Support**: Handle up to **10** concurrent client connections
 - **📢 Message Broadcasting**: Real-time message delivery to all connected clients
