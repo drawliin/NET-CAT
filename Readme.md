@@ -165,7 +165,7 @@ NET-CAT/
 │   ├── isValidName.go         # Username validation
 │   ├── isPrintable.go         # Message content validation
 │   └── readGreeting.go        # Greeting file loading
-└── README.md                  # Project documentation
+└── Readme.md                  # Project documentation
 ```
 
 ---
@@ -330,7 +330,7 @@ nc localhost 8989
 
 ### License
 
-This project is open source and available on GitHub.
+No license file is included in this repository.
 
 ---
 
