@@ -1,5 +1,9 @@
 ## NET-CAT 🐱
 
+### Authors
+
+- [Ssam (@drawliin)](https://github.com/drawliin)
+
 A concurrent TCP chat server application built with Go, enabling real-time multi-client messaging with message broadcasting.
 
 ### Overview
@@ -331,12 +335,6 @@ nc localhost 8989
 ### License
 
 No license file is included in this repository.
-
----
-
-### Author
-
-Created by **drawliin**.
 
 ---
 
