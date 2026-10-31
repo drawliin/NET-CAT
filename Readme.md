@@ -2,7 +2,7 @@
 
 ### Authors
 
-- [Ssam (@drawliin)](https://github.com/drawliin)
+- [Houssam Eddine Hamouich (@drawliin)](https://github.com/drawliin)
 
 A concurrent TCP chat server application built with Go, enabling real-time multi-client messaging with message broadcasting.
 
